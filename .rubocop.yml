@@ -1,0 +1,26 @@
+AllCops:
+  TargetRubyVersion: 2.3
+
+Metrics/LineLength:
+  Max: 120
+
+Metrics/MethodLength:
+  Max: 40
+
+Style/NumericPredicate:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/MutableConstant:
+  Enabled: false
+
+Style/NumericLiterals:
+  Enabled: false
+
+Style/WordArray:
+  Enabled: false
+
+Style/HashSyntax:
+  Enabled: false
