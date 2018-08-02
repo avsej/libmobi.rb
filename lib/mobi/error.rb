@@ -14,14 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-require 'test_helper'
-
-class MOBITest < Minitest::Test
-  def test_that_it_has_a_version_number
-    refute_nil MOBI::VERSION
-  end
-
-  def test_that_it_has_the_library_version_number
-    refute_nil MOBI::LIB_VERSION
+module MOBI
+  class Error < StandardError
+    attr_reader :code
   end
 end

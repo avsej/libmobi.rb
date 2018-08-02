@@ -6,3 +6,5 @@
 /pkg/
 /tmp/
 /Gemfile.lock
+
+*.so

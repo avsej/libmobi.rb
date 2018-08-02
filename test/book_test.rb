@@ -16,12 +16,8 @@
 
 require 'test_helper'
 
-class MOBITest < Minitest::Test
-  def test_that_it_has_a_version_number
-    refute_nil MOBI::VERSION
-  end
-
-  def test_that_it_has_the_library_version_number
-    refute_nil MOBI::LIB_VERSION
+class BookTest < Minitest::Test
+  def test_that_it_can_create_instance
+    refute_nil MOBI::Book.new
   end
 end

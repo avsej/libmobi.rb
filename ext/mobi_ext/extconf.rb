@@ -14,14 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-require 'test_helper'
+require 'rbconfig'
+require 'mkmf'
 
-class MOBITest < Minitest::Test
-  def test_that_it_has_a_version_number
-    refute_nil MOBI::VERSION
-  end
-
-  def test_that_it_has_the_library_version_number
-    refute_nil MOBI::LIB_VERSION
-  end
+def define(macro, value = nil)
+  $defs.push("-D #{[macro.upcase, Shellwords.shellescape(value)].compact.join('=')}")
 end
+
+pkg_config('libmobi') || abort('libmobi headers not found. (dnf install libmobi-devel on Fedora)')
+
+$CFLAGS << ' -pedantic -Wall -Wextra -Werror '
+
+create_header('mobi_config.h')
+create_makefile('mobi_ext')

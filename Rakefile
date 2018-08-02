@@ -38,4 +38,16 @@ Rake::TestTask.new(:test) do |t|
   t.test_files = FileList['test/**/*_test.rb']
 end
 
+require "rake/extensiontask"
+
+def gemspec
+  @clean_gemspec ||= eval(File.read(File.expand_path('libmobi.gemspec', File.dirname(__FILE__))))
+end
+
+Rake::ExtensionTask.new("mobi_ext", gemspec) do |ext|
+  ext.ext_dir = "ext/mobi_ext"
+  CLEAN.include "#{ext.lib_dir}/*.#{RbConfig::CONFIG['DLEXT']}"
+end
+Rake::Task['test'].prerequisites.unshift('compile')
+
 task :default => :test
