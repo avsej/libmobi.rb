@@ -89,4 +89,11 @@ class BookTest < Minitest::Test
     assert_equal 15, book.records.size
     assert_equal 15, book.pdb_header[:rec_count]
   end
+
+  def test_that_it_can_dump_rawml
+    book = MOBI::Book.new(fixture_path('lorem.azw3'))
+    rawml = book.rawml
+    assert_equal 1840, rawml.size
+    assert_equal 1840, book.record0_header[:text_length]
+  end
 end

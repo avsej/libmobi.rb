@@ -718,6 +718,36 @@ static VALUE mb_book_records(VALUE self)
     return res;
 }
 
+static VALUE mb_book_rawml(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+    MOBI_RET rc;
+    char *text = NULL;
+    size_t size;
+    VALUE res;
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    size = mobi_get_text_maxsize(book->data);
+    if (size == MOBI_NOTSET) {
+        mb_raise(MOBI_DATA_CORRUPT, "unable to determine size for rawml");
+    }
+    text = calloc(size + 1, sizeof(char));
+    if (text == NULL) {
+        mb_raise(MOBI_MALLOC_FAILED, "unable to allocate memory for rawml buffer");
+    }
+    rc = mobi_get_rawml(book->data, text, &size);
+    if (rc != MOBI_SUCCESS) {
+        free(text);
+        mb_raise(rc, "unable to generate rawml");
+        return Qnil;
+    }
+    res = rb_str_new(text, size);
+    free(text);
+    return res;
+}
+
 static void init_mobi_book()
 {
     mb_cBook = rb_define_class_under(mb_mMOBI, "Book", rb_cObject);
@@ -756,6 +786,7 @@ static void init_mobi_book()
     rb_define_method(mb_cBook, "is_dictionary?", mb_book_p_is_dictionary, 0);
     rb_define_method(mb_cBook, "is_kf8?", mb_book_p_is_kf8, 0);
     rb_define_method(mb_cBook, "records", mb_book_records, 0);
+    rb_define_method(mb_cBook, "rawml", mb_book_rawml, 0);
 }
 
 void Init_mobi_ext()
