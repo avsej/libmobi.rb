@@ -271,6 +271,327 @@ static VALUE mb_book_pdb_header(VALUE self)
     return res;
 }
 
+static VALUE mb_book_record0_header(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+    VALUE res = rb_hash_new();
+    MOBIRecord0Header *hdr;
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    hdr = book->data->rh;
+    if (hdr == NULL) {
+        return Qnil;
+    }
+
+    rb_hash_aset(res, ID2SYM(rb_intern("compression_type")), INT2FIX(hdr->compression_type));
+    switch (hdr->compression_type) {
+        case 1:
+            rb_hash_aset(res, ID2SYM(rb_intern("compression_type_sym")), ID2SYM(rb_intern("none")));
+            break;
+        case 2:
+            rb_hash_aset(res, ID2SYM(rb_intern("compression_type_sym")), ID2SYM(rb_intern("palm_doc")));
+            break;
+        case 17480:
+            rb_hash_aset(res, ID2SYM(rb_intern("compression_type_sym")), ID2SYM(rb_intern("huff_cdic")));
+            break;
+    }
+    rb_hash_aset(res, ID2SYM(rb_intern("text_length")), INT2FIX(hdr->text_length));
+    rb_hash_aset(res, ID2SYM(rb_intern("text_record_count")), INT2FIX(hdr->text_record_count));
+    rb_hash_aset(res, ID2SYM(rb_intern("text_record_size")), INT2FIX(hdr->text_record_size));
+    rb_hash_aset(res, ID2SYM(rb_intern("encryption_type")), INT2FIX(hdr->encryption_type));
+    switch (hdr->encryption_type) {
+        case 0:
+            rb_hash_aset(res, ID2SYM(rb_intern("encryption_type_sym")), ID2SYM(rb_intern("none")));
+            break;
+        case 1:
+            rb_hash_aset(res, ID2SYM(rb_intern("encryption_type_sym")), ID2SYM(rb_intern("old")));
+            break;
+        case 2:
+            rb_hash_aset(res, ID2SYM(rb_intern("encryption_type_sym")), ID2SYM(rb_intern("mobi")));
+            break;
+    }
+    rb_hash_aset(res, ID2SYM(rb_intern("unknown1")), INT2FIX(hdr->unknown1));
+    return res;
+}
+
+static VALUE mb_book_exth_header(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+    VALUE res = rb_ary_new();
+    MOBIExthHeader *hdr;
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    hdr = book->data->eh;
+    if (hdr == NULL) {
+        return Qnil;
+    }
+
+    while (hdr != NULL) {
+        MOBIExthMeta tag = mobi_get_exthtagmeta_by_tag(hdr->tag);
+        uint32_t val32;
+        VALUE item = rb_hash_new();
+
+        rb_hash_aset(item, ID2SYM(rb_intern("code")), INT2FIX(tag.tag));
+        switch (hdr->tag) {
+            case EXTH_SAMPLE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("sample")));
+                break;
+            case EXTH_STARTREADING:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("start_reading")));
+                break;
+            case EXTH_KF8BOUNDARY:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("kf8_boundary")));
+                break;
+            case EXTH_COUNTRESOURCES:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("count_resources")));
+                break;
+            case EXTH_RESCOFFSET:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("resc_offset")));
+                break;
+            case EXTH_COVEROFFSET:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("cover_offset")));
+                break;
+            case EXTH_THUMBOFFSET:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("thumb_offset")));
+                break;
+            case EXTH_HASFAKECOVER:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("has_fake_cover")));
+                break;
+            case EXTH_CREATORSOFT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("creator_soft")));
+                break;
+            case EXTH_CREATORMAJOR:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("creator_major")));
+                break;
+            case EXTH_CREATORMINOR:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("creator_minor")));
+                break;
+            case EXTH_CREATORBUILD:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("creator_build")));
+                break;
+            case EXTH_CLIPPINGLIMIT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("clipping_limit")));
+                break;
+            case EXTH_PUBLISHERLIMIT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("publisher_limit")));
+                break;
+            case EXTH_TTSDISABLE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("tts_disabled")));
+                break;
+            case EXTH_RENTAL:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("rental")));
+                break;
+            case EXTH_DRMSERVER:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("drm_server")));
+                break;
+            case EXTH_DRMCOMMERCE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("drm_commerce")));
+                break;
+            case EXTH_DRMEBOOKBASE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("drm_ebookbase")));
+                break;
+            case EXTH_TITLE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("title")));
+                break;
+            case EXTH_AUTHOR:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("creator")));
+                break;
+            case EXTH_PUBLISHER:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("publisher")));
+                break;
+            case EXTH_IMPRINT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("imprint")));
+                break;
+            case EXTH_DESCRIPTION:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("description")));
+                break;
+            case EXTH_ISBN:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("isbn")));
+                break;
+            case EXTH_SUBJECT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("subject")));
+                break;
+            case EXTH_PUBLISHINGDATE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("published")));
+                break;
+            case EXTH_REVIEW:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("review")));
+                break;
+            case EXTH_CONTRIBUTOR:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("contributor")));
+                break;
+            case EXTH_RIGHTS:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("rights")));
+                break;
+            case EXTH_SUBJECTCODE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("subject_code")));
+                break;
+            case EXTH_TYPE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("type")));
+                break;
+            case EXTH_SOURCE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("source")));
+                break;
+            case EXTH_ASIN:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("asin")));
+                break;
+            case EXTH_VERSION:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("version")));
+                break;
+            case EXTH_ADULT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("adult")));
+                break;
+            case EXTH_PRICE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("price")));
+                break;
+            case EXTH_CURRENCY:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("currency")));
+                break;
+            case EXTH_FIXEDLAYOUT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("fixed_layout")));
+                break;
+            case EXTH_BOOKTYPE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("book_type")));
+                break;
+            case EXTH_ORIENTATIONLOCK:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("orientation_lock")));
+                break;
+            case EXTH_ORIGRESOLUTION:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("orig_resolution")));
+                break;
+            case EXTH_ZEROGUTTER:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("zero_gutter")));
+                break;
+            case EXTH_ZEROMARGIN:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("zero_margin")));
+                break;
+            case EXTH_KF8COVERURI:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("kf8_cover_uri")));
+                break;
+            case EXTH_REGIONMAGNI:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("region_magnification")));
+                break;
+            case EXTH_DICTNAME:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("dict_name")));
+                break;
+            case EXTH_WATERMARK:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("watermark")));
+                break;
+            case EXTH_DOCTYPE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("doc_type")));
+                break;
+            case EXTH_LASTUPDATE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("last_update")));
+                break;
+            case EXTH_UPDATEDTITLE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("updated_title")));
+                break;
+            case EXTH_ASIN504:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("asin_504")));
+                break;
+            case EXTH_TITLEFILEAS:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("title_file_as")));
+                break;
+            case EXTH_CREATORFILEAS:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("creator_file_as")));
+                break;
+            case EXTH_PUBLISHERFILEAS:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("publisher_file_as")));
+                break;
+            case EXTH_LANGUAGE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("language")));
+                break;
+            case EXTH_ALIGNMENT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("alignment")));
+                break;
+            case EXTH_PAGEDIR:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("page_dir")));
+                break;
+            case EXTH_OVERRIDEFONTS:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("override_fonts")));
+                break;
+            case EXTH_SORCEDESC:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("source_desc")));
+                break;
+            case EXTH_DICTLANGIN:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("dict_lang_in")));
+                break;
+            case EXTH_DICTLANGOUT:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("dict_lang_out")));
+                break;
+            case EXTH_INPUTSOURCE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("input_source")));
+                break;
+            case EXTH_CREATORBUILDREV:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("creator_build_rev")));
+                break;
+            case EXTH_CREATORSTRING:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("creator_string")));
+                break;
+            case EXTH_TAMPERKEYS:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("tamper_keys")));
+                break;
+            case EXTH_FONTSIGNATURE:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("font_signature")));
+                break;
+            case EXTH_UNK403:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("unknown_403")));
+                break;
+            case EXTH_UNK405:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("unknown_405")));
+                break;
+            case EXTH_UNK407:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("unknown_407")));
+                break;
+            case EXTH_UNK450:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("unknown_450")));
+                break;
+            case EXTH_UNK451:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("unknown_451")));
+                break;
+            case EXTH_UNK452:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("unknown_452")));
+                break;
+            case EXTH_UNK453:
+                rb_hash_aset(item, ID2SYM(rb_intern("id")), ID2SYM(rb_intern("unknown_453")));
+                break;
+        }
+        if (tag.tag == 0) {
+            rb_hash_aset(item, ID2SYM(rb_intern("val_bin")), rb_str_new((const char *)hdr->data, hdr->size));
+            val32 = mobi_decode_exthvalue(hdr->data, hdr->size);
+            rb_hash_aset(item, ID2SYM(rb_intern("val_num")), INT2FIX(val32));
+        } else {
+            char *str;
+            rb_hash_aset(item, ID2SYM(rb_intern("name")), rb_str_new_cstr(tag.name));
+            switch (tag.type) {
+                case EXTH_NUMERIC:
+                    val32 = mobi_decode_exthvalue(hdr->data, hdr->size);
+                    rb_hash_aset(item, ID2SYM(rb_intern("val_num")), INT2FIX(val32));
+                    break;
+                case EXTH_STRING:
+                    str = mobi_decode_exthstring(book->data, hdr->data, hdr->size);
+                    if (str) {
+                        rb_hash_aset(item, ID2SYM(rb_intern("val_str")), rb_str_new_cstr(str));
+                        free(str);
+                    }
+                    break;
+                case EXTH_BINARY:
+                    rb_hash_aset(item, ID2SYM(rb_intern("val_bin")), rb_str_new((const char *)hdr->data, hdr->size));
+                    break;
+                default:
+                    break;
+            }
+        }
+        rb_ary_push(res, item);
+        hdr = hdr->next;
+    }
+    return res;
+}
+
 #define FULL_NAME_MAX 1024
 static VALUE mb_book_full_name(VALUE self)
 {
@@ -354,6 +675,8 @@ static void init_mobi_book()
     rb_define_method(mb_cBook, "initialize", mb_book_init, 1);
     rb_define_method(mb_cBook, "mobi_header", mb_book_mobi_header, 0);
     rb_define_method(mb_cBook, "pdb_header", mb_book_pdb_header, 0);
+    rb_define_method(mb_cBook, "record0_header", mb_book_record0_header, 0);
+    rb_define_method(mb_cBook, "exth_header", mb_book_exth_header, 0);
     rb_define_method(mb_cBook, "full_name", mb_book_full_name, 0);
     rb_define_method(mb_cBook, "title", mb_book_title, 0);
     rb_define_method(mb_cBook, "author", mb_book_author, 0);

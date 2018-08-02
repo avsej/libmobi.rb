@@ -63,5 +63,22 @@ class BookTest < Minitest::Test
     assert_equal 'BOOK', hdr[:type]
     assert_equal 'MOBI', hdr[:creator]
     assert_equal '2018-08-02 11:29:46 UTC', hdr[:ctime_time].utc.to_s
+
+    hdr = book.record0_header
+    assert_equal :palm_doc, hdr[:compression_type_sym]
+    assert_equal :none, hdr[:encryption_type_sym]
+    assert_equal 1840, hdr[:text_length]
+    assert_equal 1, hdr[:text_record_count]
+    assert_equal 4096, hdr[:text_record_size]
+
+    hdr = book.exth_header
+    tag = hdr.find { |item| item[:id] == :asin }
+    expected = {
+      id: :asin,
+      code: 113,
+      name: 'ASIN',
+      val_str: 'dcc4c715-c7de-484d-a533-d4fe6e1f6453'
+    }
+    assert_equal expected, tag
   end
 end
