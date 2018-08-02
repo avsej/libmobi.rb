@@ -112,6 +112,25 @@ static VALUE mb_book_init(VALUE self, VALUE path)
     return self;
 }
 
+static VALUE mb_book_next(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    if (mobi_is_hybrid(book->data) && book->data->next != NULL) {
+        VALUE obj;
+        mb_BOOK *next;
+
+        obj = Data_Make_Struct(mb_cBook, mb_BOOK, mb_book_mark, mb_book_free, next);
+        next->data = book->data->next;
+        return obj;
+    }
+
+    return Qnil;
+}
+
 #define COPY_HEADER_INT(NAME)                                                                                          \
     if (hdr->NAME) {                                                                                                   \
         rb_hash_aset(res, ID2SYM(rb_intern(#NAME)), INT2FIX(*hdr->NAME));                                              \
@@ -673,6 +692,7 @@ static void init_mobi_book()
     mb_cBook = rb_define_class_under(mb_mMOBI, "Book", rb_cObject);
     rb_define_alloc_func(mb_cBook, mb_book_alloc);
     rb_define_method(mb_cBook, "initialize", mb_book_init, 1);
+    rb_define_method(mb_cBook, "next", mb_book_next, 0);
     rb_define_method(mb_cBook, "mobi_header", mb_book_mobi_header, 0);
     rb_define_method(mb_cBook, "pdb_header", mb_book_pdb_header, 0);
     rb_define_method(mb_cBook, "record0_header", mb_book_record0_header, 0);

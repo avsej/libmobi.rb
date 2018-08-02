@@ -46,9 +46,11 @@ class BookTest < Minitest::Test
     refute book.has_guide_index?
     refute book.has_orth_index?
     refute book.has_infl_index?
-    refute book.is_hybrid?
     refute book.is_encrypted?
     refute book.is_dictionary?
+
+    refute book.is_hybrid?
+    refute book.next
 
     hdr = book.mobi_header
     assert_equal 'MOBI', hdr[:magic]
