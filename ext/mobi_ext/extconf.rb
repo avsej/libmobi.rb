@@ -24,6 +24,10 @@ end
 pkg_config('libmobi') || abort('libmobi headers not found. (dnf install libmobi-devel on Fedora)')
 
 $CFLAGS << ' -pedantic -Wall -Wextra -Werror '
+if ENV['DEBUG_BUILD']
+  $CFLAGS.gsub!(/\W-Wp,-D_FORTIFY_SOURCE=\d+\W/, ' ')
+  $CFLAGS << ' -ggdb3 -O0 '
+end
 
 create_header('mobi_config.h')
 create_makefile('mobi_ext')

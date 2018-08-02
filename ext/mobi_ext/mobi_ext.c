@@ -138,7 +138,7 @@ static VALUE mb_book_next(VALUE self)
 static VALUE mb_book_mobi_header(VALUE self)
 {
     mb_BOOK *book = DATA_PTR(self);
-    VALUE res = rb_hash_new();
+    VALUE res;
     MOBIMobiHeader *hdr;
 
     if (book == NULL || book->data == NULL) {
@@ -149,6 +149,7 @@ static VALUE mb_book_mobi_header(VALUE self)
         return Qnil;
     }
 
+    res = rb_hash_new();
     rb_hash_aset(res, ID2SYM(rb_intern("magic")), rb_str_new_cstr(hdr->mobi_magic));
     COPY_HEADER_INT(header_length);
     COPY_HEADER_INT(mobi_type);
@@ -253,7 +254,7 @@ static VALUE mb_book_mobi_header(VALUE self)
 static VALUE mb_book_pdb_header(VALUE self)
 {
     mb_BOOK *book = DATA_PTR(self);
-    VALUE res = rb_hash_new();
+    VALUE res;
     MOBIPdbHeader *hdr;
 
     if (book == NULL || book->data == NULL) {
@@ -263,7 +264,7 @@ static VALUE mb_book_pdb_header(VALUE self)
     if (hdr == NULL) {
         return Qnil;
     }
-
+    res = rb_hash_new();
     rb_hash_aset(res, ID2SYM(rb_intern("name")), rb_str_new_cstr(hdr->name));
     rb_hash_aset(res, ID2SYM(rb_intern("attributes")), INT2FIX(hdr->attributes));
     rb_hash_aset(res, ID2SYM(rb_intern("version")), INT2FIX(hdr->version));
@@ -293,7 +294,7 @@ static VALUE mb_book_pdb_header(VALUE self)
 static VALUE mb_book_record0_header(VALUE self)
 {
     mb_BOOK *book = DATA_PTR(self);
-    VALUE res = rb_hash_new();
+    VALUE res;
     MOBIRecord0Header *hdr;
 
     if (book == NULL || book->data == NULL) {
@@ -304,6 +305,7 @@ static VALUE mb_book_record0_header(VALUE self)
         return Qnil;
     }
 
+    res = rb_hash_new();
     rb_hash_aset(res, ID2SYM(rb_intern("compression_type")), INT2FIX(hdr->compression_type));
     switch (hdr->compression_type) {
         case 1:
@@ -338,7 +340,7 @@ static VALUE mb_book_record0_header(VALUE self)
 static VALUE mb_book_exth_header(VALUE self)
 {
     mb_BOOK *book = DATA_PTR(self);
-    VALUE res = rb_ary_new();
+    VALUE res;
     MOBIExthHeader *hdr;
 
     if (book == NULL || book->data == NULL) {
@@ -349,6 +351,7 @@ static VALUE mb_book_exth_header(VALUE self)
         return Qnil;
     }
 
+    res = rb_ary_new();
     while (hdr != NULL) {
         MOBIExthMeta tag = mobi_get_exthtagmeta_by_tag(hdr->tag);
         uint32_t val32;
@@ -687,6 +690,34 @@ DEFINE_PREDICATE(is_mobipocket, mobi_is_mobipocket)
 DEFINE_PREDICATE(is_dictionary, mobi_is_dictionary)
 DEFINE_PREDICATE(is_kf8, mobi_is_kf8)
 
+static VALUE mb_book_records(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+    VALUE res;
+    const MOBIPdbRecord *rec;
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    rec = book->data->rec;
+    if (rec == NULL) {
+        return Qnil;
+    }
+
+    res = rb_ary_new();
+    while (rec != NULL) {
+        VALUE item = rb_hash_new();
+        rb_hash_aset(item, ID2SYM(rb_intern("offset")), INT2FIX(rec->offset));
+        rb_hash_aset(item, ID2SYM(rb_intern("size")), INT2FIX(rec->size));
+        rb_hash_aset(item, ID2SYM(rb_intern("attributes")), INT2FIX(rec->attributes));
+        rb_hash_aset(item, ID2SYM(rb_intern("uid")), INT2FIX(rec->uid));
+        rb_hash_aset(item, ID2SYM(rb_intern("data")), rb_str_new((const char *)rec->data, rec->size));
+        rb_ary_push(res, item);
+        rec = rec->next;
+    }
+    return res;
+}
+
 static void init_mobi_book()
 {
     mb_cBook = rb_define_class_under(mb_mMOBI, "Book", rb_cObject);
@@ -724,6 +755,7 @@ static void init_mobi_book()
     rb_define_method(mb_cBook, "is_mobipocket?", mb_book_p_is_mobipocket, 0);
     rb_define_method(mb_cBook, "is_dictionary?", mb_book_p_is_dictionary, 0);
     rb_define_method(mb_cBook, "is_kf8?", mb_book_p_is_kf8, 0);
+    rb_define_method(mb_cBook, "records", mb_book_records, 0);
 }
 
 void Init_mobi_ext()

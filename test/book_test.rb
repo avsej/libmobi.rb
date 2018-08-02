@@ -21,7 +21,7 @@ class BookTest < Minitest::Test
     MOBI::Book.new(fixture_path('lorem.azw3'))
   end
 
-  def test_that_it_can_access_basic_meta
+  def test_that_it_can_access_meta
     book = MOBI::Book.new(fixture_path('lorem.azw3'))
     assert_equal 'Lorem Ipsum', book.full_name
     assert_equal 'Lorem Ipsum', book.title
@@ -82,5 +82,11 @@ class BookTest < Minitest::Test
       val_str: 'dcc4c715-c7de-484d-a533-d4fe6e1f6453'
     }
     assert_equal expected, tag
+  end
+
+  def test_that_it_can_access_document_records
+    book = MOBI::Book.new(fixture_path('lorem.azw3'))
+    assert_equal 15, book.records.size
+    assert_equal 15, book.pdb_header[:rec_count]
   end
 end
