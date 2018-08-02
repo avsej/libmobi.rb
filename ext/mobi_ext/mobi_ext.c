@@ -87,29 +87,216 @@ static void mb_book_free(void *ptr)
 static VALUE mb_book_alloc(VALUE klass)
 {
     VALUE obj;
-    MOBIData *data;
+    mb_BOOK *book;
 
-    obj = Data_Make_Struct(klass, MOBIData, mb_book_mark, mb_book_free, data);
+    obj = Data_Make_Struct(klass, mb_BOOK, mb_book_mark, mb_book_free, book);
     return obj;
 }
 
-VALUE mb_book_init(VALUE self)
+VALUE mb_book_init(VALUE self, VALUE path)
 {
     mb_BOOK *book = DATA_PTR(self);
+    MOBI_RET rc;
+
+    Check_Type(path, T_STRING);
 
     book->data = mobi_init();
     if (book->data == NULL) {
         mb_raise(MOBI_MALLOC_FAILED, "unable to allocate MOBIData struct");
     }
 
+    rc = mobi_load_filename(book->data, RSTRING_PTR(path));
+    if (rc != MOBI_SUCCESS) {
+        mb_raise(rc, "unable to load book from path");
+    }
     return self;
 }
+
+#define COPY_HEADER_INT(__name__)                                                                                      \
+    if (hdr->__name__) {                                                                                               \
+        rb_hash_aset(res, ID2SYM(rb_intern(#__name__)), INT2FIX(*hdr->__name__));                                      \
+    }
+static VALUE mb_book_mobi_header(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+    VALUE res = rb_hash_new();
+    MOBIMobiHeader *hdr;
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    hdr = book->data->mh;
+    if (hdr == NULL) {
+        return Qnil;
+    }
+
+    rb_hash_aset(res, ID2SYM(rb_intern("magic")), rb_str_new_cstr(hdr->mobi_magic));
+    COPY_HEADER_INT(header_length);
+    COPY_HEADER_INT(mobi_type);
+    if (hdr->text_encoding) {
+        rb_hash_aset(res, ID2SYM(rb_intern("text_encoding")), INT2FIX(*hdr->text_encoding));
+        switch (*hdr->text_encoding) {
+            case MOBI_CP1252:
+                rb_hash_aset(res, ID2SYM(rb_intern("text_encoding_sym")), ID2SYM(rb_intern("cp1252")));
+                break;
+            case MOBI_UTF8:
+                rb_hash_aset(res, ID2SYM(rb_intern("text_encoding_sym")), ID2SYM(rb_intern("utf8")));
+                break;
+            case MOBI_UTF16:
+                rb_hash_aset(res, ID2SYM(rb_intern("text_encoding_sym")), ID2SYM(rb_intern("utf16")));
+                break;
+            default:
+                rb_hash_aset(res, ID2SYM(rb_intern("text_encoding_sym")), ID2SYM(rb_intern("unknown")));
+                break;
+        }
+    }
+    if (hdr->locale) {
+        const char *locale_string = mobi_get_locale_string(*hdr->locale);
+        if (locale_string) {
+            rb_hash_aset(res, ID2SYM(rb_intern("locale_str")), rb_str_new_cstr(locale_string));
+        }
+        rb_hash_aset(res, ID2SYM(rb_intern("locale")), INT2FIX(*hdr->locale));
+    }
+    if (hdr->dict_input_lang) {
+        const char *locale_string = mobi_get_locale_string(*hdr->dict_input_lang);
+        if (locale_string) {
+            rb_hash_aset(res, ID2SYM(rb_intern("dict_input_lang_str")), rb_str_new_cstr(locale_string));
+        }
+        rb_hash_aset(res, ID2SYM(rb_intern("dict_input_lang")), INT2FIX(*hdr->dict_input_lang));
+    }
+    if (hdr->dict_output_lang) {
+        const char *locale_string = mobi_get_locale_string(*hdr->dict_output_lang);
+        if (locale_string) {
+            rb_hash_aset(res, ID2SYM(rb_intern("dict_output_lang_str")), rb_str_new_cstr(locale_string));
+        }
+        rb_hash_aset(res, ID2SYM(rb_intern("dict_output_lang")), INT2FIX(*hdr->dict_output_lang));
+    }
+    COPY_HEADER_INT(uid);
+    COPY_HEADER_INT(version);
+    COPY_HEADER_INT(orth_index);
+    COPY_HEADER_INT(infl_index);
+    COPY_HEADER_INT(names_index);
+    COPY_HEADER_INT(keys_index);
+    COPY_HEADER_INT(keys_index);
+    COPY_HEADER_INT(extra0_index);
+    COPY_HEADER_INT(extra1_index);
+    COPY_HEADER_INT(extra2_index);
+    COPY_HEADER_INT(extra3_index);
+    COPY_HEADER_INT(extra4_index);
+    COPY_HEADER_INT(extra5_index);
+    COPY_HEADER_INT(non_text_index);
+    COPY_HEADER_INT(full_name_offset);
+    COPY_HEADER_INT(full_name_length);
+    COPY_HEADER_INT(min_version);
+    COPY_HEADER_INT(image_index);
+    COPY_HEADER_INT(huff_rec_index);
+    COPY_HEADER_INT(huff_rec_count);
+    COPY_HEADER_INT(datp_rec_index);
+    COPY_HEADER_INT(datp_rec_count);
+    COPY_HEADER_INT(exth_flags);
+    COPY_HEADER_INT(unknown6);
+    COPY_HEADER_INT(drm_offset);
+    COPY_HEADER_INT(drm_count);
+    COPY_HEADER_INT(drm_size);
+    COPY_HEADER_INT(drm_flags);
+    COPY_HEADER_INT(first_text_index);
+    COPY_HEADER_INT(last_text_index);
+    COPY_HEADER_INT(fdst_index);
+    COPY_HEADER_INT(fdst_section_count);
+    COPY_HEADER_INT(fcis_index);
+    COPY_HEADER_INT(fcis_count);
+    COPY_HEADER_INT(flis_index);
+    COPY_HEADER_INT(flis_count);
+    COPY_HEADER_INT(unknown10);
+    COPY_HEADER_INT(unknown11);
+    COPY_HEADER_INT(srcs_index);
+    COPY_HEADER_INT(srcs_count);
+    COPY_HEADER_INT(unknown12);
+    COPY_HEADER_INT(unknown13);
+    COPY_HEADER_INT(extra_flags);
+    COPY_HEADER_INT(ncx_index);
+    COPY_HEADER_INT(unknown14);
+    COPY_HEADER_INT(unknown15);
+    COPY_HEADER_INT(fragment_index);
+    COPY_HEADER_INT(skeleton_index);
+    COPY_HEADER_INT(datp_index);
+    COPY_HEADER_INT(unknown16);
+    COPY_HEADER_INT(guide_index);
+    COPY_HEADER_INT(unknown17);
+    COPY_HEADER_INT(unknown18);
+    COPY_HEADER_INT(unknown19);
+    COPY_HEADER_INT(unknown20);
+
+    return res;
+}
+#undef COPY_HEADER_INT
+
+static VALUE mb_book_pdb_header(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+    VALUE res = rb_hash_new();
+    MOBIPdbHeader *hdr;
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    hdr = book->data->ph;
+    if (hdr == NULL) {
+        return Qnil;
+    }
+
+    rb_hash_aset(res, ID2SYM(rb_intern("name")), rb_str_new_cstr(hdr->name));
+    rb_hash_aset(res, ID2SYM(rb_intern("attributes")), INT2FIX(hdr->attributes));
+    rb_hash_aset(res, ID2SYM(rb_intern("version")), INT2FIX(hdr->version));
+    rb_hash_aset(res, ID2SYM(rb_intern("ctime")), INT2FIX(hdr->ctime));
+    if (hdr->ctime) {
+        rb_hash_aset(res, ID2SYM(rb_intern("ctime_time")), rb_time_new(mktime(mobi_pdbtime_to_time(hdr->ctime)), 0));
+    }
+    rb_hash_aset(res, ID2SYM(rb_intern("mtime")), INT2FIX(hdr->mtime));
+    if (hdr->mtime) {
+        rb_hash_aset(res, ID2SYM(rb_intern("mtime_time")), rb_time_new(mktime(mobi_pdbtime_to_time(hdr->mtime)), 0));
+    }
+    rb_hash_aset(res, ID2SYM(rb_intern("btime")), INT2FIX(hdr->btime));
+    if (hdr->btime) {
+        rb_hash_aset(res, ID2SYM(rb_intern("btime_time")), rb_time_new(mktime(mobi_pdbtime_to_time(hdr->btime)), 0));
+    }
+    rb_hash_aset(res, ID2SYM(rb_intern("mod_num")), INT2FIX(hdr->mod_num));
+    rb_hash_aset(res, ID2SYM(rb_intern("appinfo_offset")), INT2FIX(hdr->appinfo_offset));
+    rb_hash_aset(res, ID2SYM(rb_intern("sortinfo_offset")), INT2FIX(hdr->sortinfo_offset));
+    rb_hash_aset(res, ID2SYM(rb_intern("type")), rb_str_new_cstr(hdr->type));
+    rb_hash_aset(res, ID2SYM(rb_intern("creator")), rb_str_new_cstr(hdr->creator));
+    rb_hash_aset(res, ID2SYM(rb_intern("uid")), INT2FIX(hdr->uid));
+    rb_hash_aset(res, ID2SYM(rb_intern("next_rec")), INT2FIX(hdr->next_rec));
+    rb_hash_aset(res, ID2SYM(rb_intern("rec_count")), INT2FIX(hdr->rec_count));
+    return res;
+}
+
+#define FULL_NAME_MAX 1024
+VALUE mb_book_full_name(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+    MOBI_RET rc;
+    char full_name[FULL_NAME_MAX + 1] = {0};
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    rc = mobi_get_fullname(book->data, full_name, FULL_NAME_MAX);
+    if (rc != MOBI_SUCCESS) {
+        mb_raise(rc, "unable to fetch book full name");
+    }
+    return rb_str_new_cstr(full_name);
+}
+#undef FULL_NAME_MAX
 
 static void init_mobi_book()
 {
     mb_cBook = rb_define_class_under(mb_mMOBI, "Book", rb_cObject);
     rb_define_alloc_func(mb_cBook, mb_book_alloc);
-    rb_define_method(mb_cBook, "initialize", mb_book_init, 0);
+    rb_define_method(mb_cBook, "initialize", mb_book_init, 1);
+    rb_define_method(mb_cBook, "mobi_header", mb_book_mobi_header, 0);
+    rb_define_method(mb_cBook, "pdb_header", mb_book_pdb_header, 0);
+    rb_define_method(mb_cBook, "full_name", mb_book_full_name, 0);
 }
 
 void Init_mobi_ext()

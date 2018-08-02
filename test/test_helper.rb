@@ -18,3 +18,7 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'libmobi'
 
 require 'minitest/autorun'
+
+def fixture_path(id)
+  File.expand_path(File.join(__dir__, 'fixtures', id))
+end

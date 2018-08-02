@@ -16,6 +16,7 @@
 
 require 'mobi/version'
 require 'mobi/error'
+require 'mobi/book'
 require 'mobi_ext'
 
 module MOBI
