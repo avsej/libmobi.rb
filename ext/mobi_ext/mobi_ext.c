@@ -93,7 +93,7 @@ static VALUE mb_book_alloc(VALUE klass)
     return obj;
 }
 
-VALUE mb_book_init(VALUE self, VALUE path)
+static VALUE mb_book_init(VALUE self, VALUE path)
 {
     mb_BOOK *book = DATA_PTR(self);
     MOBI_RET rc;
@@ -112,9 +112,9 @@ VALUE mb_book_init(VALUE self, VALUE path)
     return self;
 }
 
-#define COPY_HEADER_INT(__name__)                                                                                      \
-    if (hdr->__name__) {                                                                                               \
-        rb_hash_aset(res, ID2SYM(rb_intern(#__name__)), INT2FIX(*hdr->__name__));                                      \
+#define COPY_HEADER_INT(NAME)                                                                                          \
+    if (hdr->NAME) {                                                                                                   \
+        rb_hash_aset(res, ID2SYM(rb_intern(#NAME)), INT2FIX(*hdr->NAME));                                              \
     }
 static VALUE mb_book_mobi_header(VALUE self)
 {
@@ -272,7 +272,7 @@ static VALUE mb_book_pdb_header(VALUE self)
 }
 
 #define FULL_NAME_MAX 1024
-VALUE mb_book_full_name(VALUE self)
+static VALUE mb_book_full_name(VALUE self)
 {
     mb_BOOK *book = DATA_PTR(self);
     MOBI_RET rc;
@@ -289,6 +289,64 @@ VALUE mb_book_full_name(VALUE self)
 }
 #undef FULL_NAME_MAX
 
+#define DEFINE_META_GETTER_STR(ATTR)                                                                                   \
+    static VALUE mb_book_##ATTR(VALUE self)                                                                            \
+    {                                                                                                                  \
+        mb_BOOK *book = DATA_PTR(self);                                                                                \
+        const char *str;                                                                                               \
+                                                                                                                       \
+        if (book == NULL || book->data == NULL) {                                                                      \
+            mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");                                                 \
+        }                                                                                                              \
+        str = mobi_meta_get_##ATTR(book->data);                                                                        \
+        if (str) {                                                                                                     \
+            return rb_str_new_cstr(str);                                                                               \
+        }                                                                                                              \
+        return Qnil;                                                                                                   \
+    }
+
+DEFINE_META_GETTER_STR(title)
+DEFINE_META_GETTER_STR(author)
+DEFINE_META_GETTER_STR(publisher)
+DEFINE_META_GETTER_STR(imprint)
+DEFINE_META_GETTER_STR(description)
+DEFINE_META_GETTER_STR(isbn)
+DEFINE_META_GETTER_STR(subject)
+DEFINE_META_GETTER_STR(publishdate)
+DEFINE_META_GETTER_STR(review)
+DEFINE_META_GETTER_STR(contributor)
+DEFINE_META_GETTER_STR(copyright)
+DEFINE_META_GETTER_STR(asin)
+DEFINE_META_GETTER_STR(language)
+
+#define DEFINE_PREDICATE(METHOD, FUNCTION)                                                                             \
+    static VALUE mb_book_p_##METHOD(VALUE self)                                                                        \
+    {                                                                                                                  \
+        mb_BOOK *book = DATA_PTR(self);                                                                                \
+                                                                                                                       \
+        if (book == NULL || book->data == NULL) {                                                                      \
+            mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");                                                 \
+        }                                                                                                              \
+        if (FUNCTION(book->data)) {                                                                                    \
+            return Qtrue;                                                                                              \
+        }                                                                                                              \
+        return Qfalse;                                                                                                 \
+    }
+
+DEFINE_PREDICATE(has_mobi_header, mobi_exists_mobiheader)
+DEFINE_PREDICATE(has_fdst, mobi_exists_fdst)
+DEFINE_PREDICATE(has_skeleton_index, mobi_exists_skel_indx)
+DEFINE_PREDICATE(has_fragments_index, mobi_exists_frag_indx)
+DEFINE_PREDICATE(has_guide_index, mobi_exists_guide_indx)
+DEFINE_PREDICATE(has_ncx_index, mobi_exists_ncx)
+DEFINE_PREDICATE(has_orth_index, mobi_exists_orth)
+DEFINE_PREDICATE(has_infl_index, mobi_exists_infl)
+DEFINE_PREDICATE(is_hybrid, mobi_is_hybrid)
+DEFINE_PREDICATE(is_encrypted, mobi_is_encrypted)
+DEFINE_PREDICATE(is_mobipocket, mobi_is_mobipocket)
+DEFINE_PREDICATE(is_dictionary, mobi_is_dictionary)
+DEFINE_PREDICATE(is_kf8, mobi_is_kf8)
+
 static void init_mobi_book()
 {
     mb_cBook = rb_define_class_under(mb_mMOBI, "Book", rb_cObject);
@@ -297,6 +355,32 @@ static void init_mobi_book()
     rb_define_method(mb_cBook, "mobi_header", mb_book_mobi_header, 0);
     rb_define_method(mb_cBook, "pdb_header", mb_book_pdb_header, 0);
     rb_define_method(mb_cBook, "full_name", mb_book_full_name, 0);
+    rb_define_method(mb_cBook, "title", mb_book_title, 0);
+    rb_define_method(mb_cBook, "author", mb_book_author, 0);
+    rb_define_method(mb_cBook, "publisher", mb_book_publisher, 0);
+    rb_define_method(mb_cBook, "imprint", mb_book_imprint, 0);
+    rb_define_method(mb_cBook, "description", mb_book_description, 0);
+    rb_define_method(mb_cBook, "isbn", mb_book_isbn, 0);
+    rb_define_method(mb_cBook, "subject", mb_book_subject, 0);
+    rb_define_method(mb_cBook, "publishdate", mb_book_publishdate, 0);
+    rb_define_method(mb_cBook, "review", mb_book_review, 0);
+    rb_define_method(mb_cBook, "contributor", mb_book_contributor, 0);
+    rb_define_method(mb_cBook, "copyright", mb_book_copyright, 0);
+    rb_define_method(mb_cBook, "asin", mb_book_asin, 0);
+    rb_define_method(mb_cBook, "language", mb_book_language, 0);
+    rb_define_method(mb_cBook, "has_mobi_header?", mb_book_p_has_mobi_header, 0);
+    rb_define_method(mb_cBook, "has_fdst?", mb_book_p_has_fdst, 0);
+    rb_define_method(mb_cBook, "has_skeleton_index?", mb_book_p_has_skeleton_index, 0);
+    rb_define_method(mb_cBook, "has_fragments_index?", mb_book_p_has_fragments_index, 0);
+    rb_define_method(mb_cBook, "has_guide_index?", mb_book_p_has_guide_index, 0);
+    rb_define_method(mb_cBook, "has_ncx_index?", mb_book_p_has_ncx_index, 0);
+    rb_define_method(mb_cBook, "has_orth_index?", mb_book_p_has_orth_index, 0);
+    rb_define_method(mb_cBook, "has_infl_index?", mb_book_p_has_infl_index, 0);
+    rb_define_method(mb_cBook, "is_hybrid?", mb_book_p_is_hybrid, 0);
+    rb_define_method(mb_cBook, "is_encrypted?", mb_book_p_is_encrypted, 0);
+    rb_define_method(mb_cBook, "is_mobipocket?", mb_book_p_is_mobipocket, 0);
+    rb_define_method(mb_cBook, "is_dictionary?", mb_book_p_is_dictionary, 0);
+    rb_define_method(mb_cBook, "is_kf8?", mb_book_p_is_kf8, 0);
 }
 
 void Init_mobi_ext()

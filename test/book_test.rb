@@ -24,6 +24,31 @@ class BookTest < Minitest::Test
   def test_that_it_can_access_basic_meta
     book = MOBI::Book.new(fixture_path('lorem.azw3'))
     assert_equal 'Lorem Ipsum', book.full_name
+    assert_equal 'Lorem Ipsum', book.title
+    assert_equal 'libmobi.rb', book.author
+    assert_equal 'calibre (3.19.0) [https://calibre-ebook.com]', book.contributor
+    assert_equal 'dcc4c715-c7de-484d-a533-d4fe6e1f6453', book.asin
+    assert_equal 'en', book.language
+    assert_equal 'rubygem libmobi.rb', book.publisher
+    assert_equal '<p>This is sample book from test fixtures of libmobi.rb project.</p>', book.description
+    assert_equal '9783598215001', book.isbn
+    assert_equal '2018-08-01 21:00:00+00:00', book.publishdate
+    assert_equal 'rubygem; fixture', book.subject
+
+    assert book.has_mobi_header?
+    assert book.has_fdst?
+    assert book.has_skeleton_index?
+    assert book.has_fragments_index?
+    assert book.has_ncx_index?
+    assert book.is_mobipocket?
+    assert book.is_kf8?
+
+    refute book.has_guide_index?
+    refute book.has_orth_index?
+    refute book.has_infl_index?
+    refute book.is_hybrid?
+    refute book.is_encrypted?
+    refute book.is_dictionary?
 
     hdr = book.mobi_header
     assert_equal 'MOBI', hdr[:magic]
