@@ -748,6 +748,115 @@ static VALUE mb_book_rawml(VALUE self)
     return res;
 }
 
+static VALUE mb_extract_mobiparts(const MOBIPart *part)
+{
+    VALUE items = rb_ary_new();
+    while (part != NULL) {
+        VALUE item = rb_hash_new();
+        rb_hash_aset(item, ID2SYM(rb_intern("type")), INT2FIX(part->type));
+        switch (part->type) {
+            case T_UNKNOWN:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("unknown")));
+                break;
+            case T_HTML:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("html")));
+                break;
+            case T_CSS:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("css")));
+                break;
+            case T_SVG:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("svg")));
+                break;
+            case T_OPF:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("opf")));
+                break;
+            case T_NCX:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("ncx")));
+                break;
+            case T_JPG:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("jpg")));
+                break;
+            case T_GIF:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("gif")));
+                break;
+            case T_PNG:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("png")));
+                break;
+            case T_BMP:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("bmp")));
+                break;
+            case T_OTF:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("otf")));
+                break;
+            case T_TTF:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("ttf")));
+                break;
+            case T_MP3:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("mp3")));
+                break;
+            case T_MPG:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("mpg")));
+                break;
+            case T_PDF:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("pdf")));
+                break;
+            case T_FONT:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("font")));
+                break;
+            case T_AUDIO:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("audio")));
+                break;
+            case T_VIDEO:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("video")));
+                break;
+            case T_BREAK:
+                rb_hash_aset(item, ID2SYM(rb_intern("type_sym")), ID2SYM(rb_intern("break")));
+                break;
+        }
+        rb_hash_aset(item, ID2SYM(rb_intern("uid")), INT2FIX(part->uid));
+        rb_hash_aset(item, ID2SYM(rb_intern("size")), INT2FIX(part->size));
+        rb_hash_aset(item, ID2SYM(rb_intern("data")), rb_str_new((const char *)part->data, part->size));
+        part = part->next;
+        rb_ary_push(items, item);
+    }
+    return items;
+}
+
+static VALUE mb_book_rawml_parts(VALUE self)
+{
+    mb_BOOK *book = DATA_PTR(self);
+    MOBI_RET rc;
+    MOBIRawml *rawml;
+    VALUE res;
+
+    if (book == NULL || book->data == NULL) {
+        mb_raise(MOBI_INIT_FAILED, "the MOBI data is not loaded");
+    }
+    rawml = mobi_init_rawml(book->data);
+    if (rawml == NULL) {
+        mb_raise(MOBI_MALLOC_FAILED, "unable to allocate memory for rawml structure");
+    }
+    rc = mobi_parse_rawml(rawml, book->data);
+    if (rc != MOBI_SUCCESS) {
+        mobi_free_rawml(rawml);
+        mb_raise(rc, "unable to generate rawml");
+        return Qnil;
+    }
+    res = rb_hash_new();
+    rb_hash_aset(res, ID2SYM(rb_intern("version")), INT2FIX(rawml->version));
+    if (rawml->markup != NULL) {
+        rb_hash_aset(res, ID2SYM(rb_intern("markup")), mb_extract_mobiparts(rawml->markup));
+    }
+    if (rawml->flow != NULL) {
+        rb_hash_aset(res, ID2SYM(rb_intern("flow")), mb_extract_mobiparts(rawml->flow));
+    }
+    if (rawml->resources != NULL) {
+        rb_hash_aset(res, ID2SYM(rb_intern("resources")), mb_extract_mobiparts(rawml->resources));
+    }
+    mobi_free_rawml(rawml);
+    return res;
+}
+
 static void init_mobi_book()
 {
     mb_cBook = rb_define_class_under(mb_mMOBI, "Book", rb_cObject);
@@ -787,6 +896,7 @@ static void init_mobi_book()
     rb_define_method(mb_cBook, "is_kf8?", mb_book_p_is_kf8, 0);
     rb_define_method(mb_cBook, "records", mb_book_records, 0);
     rb_define_method(mb_cBook, "rawml", mb_book_rawml, 0);
+    rb_define_method(mb_cBook, "rawml_parts", mb_book_rawml_parts, 0);
 }
 
 void Init_mobi_ext()

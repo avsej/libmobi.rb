@@ -96,4 +96,14 @@ class BookTest < Minitest::Test
     assert_equal 1840, rawml.size
     assert_equal 1840, book.record0_header[:text_length]
   end
+
+  def test_that_it_can_acess_rawml_parts
+    book = MOBI::Book.new(fixture_path('lorem.azw3'))
+    parts = book.rawml_parts
+    assert_equal 8, parts[:version]
+    assert_equal 1, parts[:markup].size
+    assert_equal :html, parts[:markup][0][:type_sym]
+    assert_equal 1805, parts[:markup][0][:size]
+    assert_match(/lorem ipsum dolor/i, parts[:markup][0][:data])
+  end
 end
